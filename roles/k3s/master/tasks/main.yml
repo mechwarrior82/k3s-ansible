@@ -83,9 +83,14 @@
     state: directory
     owner: "{{ ansible_user }}"
 
-- name: Install Metallb
+- name: create Metallb namespace
   command: >-
     k3s kubectl apply -f "https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/namespace.yaml"
+  changed_when: true
+  when: install_metallb == "true"
+
+- name: Install Metallb
+  command: >-
     k3s kubectl apply -f "https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/metallb.yaml"
   changed_when: true
   when: install_metallb == "true"
