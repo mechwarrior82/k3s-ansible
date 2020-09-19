@@ -38,6 +38,7 @@
 - name: Store Master node-token
   set_fact:
     token: "{{ node_token.content | b64decode | regex_replace('\n', '') }}"
+    key_value: ""
 
 - name: Restore node-token file access
   file:
@@ -64,56 +65,6 @@
       --kubeconfig ~{{ ansible_user }}/.kube/config
   changed_when: true
 
-- name: Install Metallb
-  command: >-
-    k3s kubectl apply -f "https://raw.githubusercontent.com/danderson/metallb/master/manifests/metallb.yaml"
-  changed_when: true
-  when: {{ install_metallb }}
-
-- name: config Metallb
-  k8s:
-      state: present
-      definition:
-        apiVersion: v1
-        kind: ConfigMap
-        metadata:
-          namespace: metallb-system
-          name: config
-        data:
-          config: |
-            address-pools:
-            - name: {{ metallb_pool_name }}
-              protocol: layer2
-              addresses:
-              - {{ metallb_addresses }}
-  when: {{ install_metallb }}
-
-- name: Install k8dash
-  command: >-
-    k3s kubectl apply -f "https://raw.githubusercontent.com/herbrandson/k8dash/master/kubernetes-k8dash.yaml"
-  changed_when: true
-  when: "{{ install_k8dash }}"
-
-- name: config k8dashlb
-  k8s:
-      state: present
-      definition:
-        apiVersion: v1
-        kind: Service
-        metadata:
-          name: k8dashlb
-          namespace: kube-system
-        spec:
-          ports:
-          - name: http
-            port: 80
-            protocol: TCP
-            targetPort: 4654
-          selector:
-            k8s-app: k8dash
-          type: LoadBalancer
-  when: "{{ install_k8dash }}"
-
 - name: Create kubectl symlink
   file:
     src: /usr/local/bin/k3s
@@ -125,3 +76,49 @@
     src: /usr/local/bin/k3s
     dest: /usr/local/bin/crictl
     state: link
+
+- name: Create directory kube-config
+  file:
+    path: ~{{ ansible_user }}/kube-config
+    state: directory
+    owner: "{{ ansible_user }}"
+
+- name: Install Metallb
+  command: >-
+    k3s kubectl apply -f "https://raw.githubusercontent.com/danderson/metallb/master/manifests/metallb.yaml"
+  changed_when: true
+  when: "{{ install_metallb }}"
+
+- name: Copy Metallb configmap file
+  template:
+    src: "pool.yml.j2"
+    dest: "~{{ ansible_user }}/kube-config/pool.yml"
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Install Metallb configmap
+  command: >-
+    k3s kubectl apply -f "~{{ ansible_user }}/kube-config/pool.yml"
+  changed_when: true
+  when: "{{ install_metallb }}"
+
+- name: Install k8dash
+  command: >-
+    k3s kubectl apply -f "https://raw.githubusercontent.com/herbrandson/k8dash/master/kubernetes-k8dash.yaml"
+  changed_when: true
+  when: "{{ install_k8dash }}"
+
+- name: Copy Metallb configmap file
+  template:
+    src: "service.yml.j2"
+    dest: "~{{ ansible_user }}/kube-config/service.yml"
+    owner: root
+    group: root
+    mode: 0755
+
+- name: Install k8dashlb service
+  command: >-
+    k3s kubectl apply -f "~{{ ansible_user }}/kube-config/service.yml"
+  changed_when: true
+  when: "{{ install_k8dash }}"
