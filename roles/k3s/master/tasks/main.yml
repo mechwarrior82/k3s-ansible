@@ -87,7 +87,7 @@
   command: >-
     k3s kubectl apply -f "https://raw.githubusercontent.com/danderson/metallb/master/manifests/metallb.yaml"
   changed_when: true
-  when: "{{ install_metallb }}"
+  when: install_metallb == "true"
 
 - name: Copy Metallb configmap file
   template:
@@ -101,13 +101,13 @@
   command: >-
     k3s kubectl apply -f "~{{ ansible_user }}/kube-config/pool.yml"
   changed_when: true
-  when: "{{ install_metallb }}"
+  when: install_metallb == "true"
 
 - name: Install k8dash
   command: >-
     k3s kubectl apply -f "https://raw.githubusercontent.com/herbrandson/k8dash/master/kubernetes-k8dash.yaml"
   changed_when: true
-  when: "{{ install_k8dash }}"
+  when: install_k8dash == "true"
 
 - name: Copy Metallb configmap file
   template:
@@ -121,4 +121,4 @@
   command: >-
     k3s kubectl apply -f "~{{ ansible_user }}/kube-config/service.yml"
   changed_when: true
-  when: "{{ install_k8dash }}"
+  when: install_k8dash == "true"
