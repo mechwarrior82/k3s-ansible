@@ -64,6 +64,56 @@
       --kubeconfig ~{{ ansible_user }}/.kube/config
   changed_when: true
 
+- name: Install Metallb
+  command: >-
+    k3s kubectl apply -f "https://raw.githubusercontent.com/danderson/metallb/master/manifests/metallb.yaml"
+  changed_when: true
+  when: {{ install_metallb }}
+
+- name: config Metallb
+  k8s:
+      state: present
+      definition:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          namespace: metallb-system
+          name: config
+        data:
+          config: |
+            address-pools:
+            - name: {{ metallb_pool_name }}
+              protocol: layer2
+              addresses:
+              - {{ metallb_addresses }}
+  when: {{ install_metallb }}
+
+- name: Install k8dash
+  command: >-
+    k3s kubectl apply -f "https://raw.githubusercontent.com/herbrandson/k8dash/master/kubernetes-k8dash.yaml"
+  changed_when: true
+  when: "{{ install_k8dash }}"
+
+- name: config k8dashlb
+  k8s:
+      state: present
+      definition:
+        apiVersion: v1
+        kind: Service
+        metadata:
+          name: k8dashlb
+          namespace: kube-system
+        spec:
+          ports:
+          - name: http
+            port: 80
+            protocol: TCP
+            targetPort: 4654
+          selector:
+            k8s-app: k8dash
+          type: LoadBalancer
+  when: "{{ install_k8dash }}"
+
 - name: Create kubectl symlink
   file:
     src: /usr/local/bin/k3s
