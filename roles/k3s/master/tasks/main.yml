@@ -85,7 +85,15 @@
 
 - name: Install Metallb
   command: >-
-    k3s kubectl apply -f "https://raw.githubusercontent.com/danderson/metallb/master/manifests/metallb.yaml"
+    k3s kubectl apply -f "https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/namespace.yaml"
+    k3s kubectl apply -f "https://raw.githubusercontent.com/metallb/metallb/v0.9.3/manifests/metallb.yaml"
+  changed_when: true
+  when: install_metallb == "true"
+
+#this needs a check to see if it exist else it will fail if it does.
+- name: Create Metallb secret
+  command: >-
+    kubectl create secret generic -n metallb-system memberlist --from-literal=secretkey="$(openssl rand -base64 128)"
   changed_when: true
   when: install_metallb == "true"
 
