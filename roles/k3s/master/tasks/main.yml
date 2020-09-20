@@ -109,6 +109,7 @@
     owner: root
     group: root
     mode: 0755
+  when: install_metallb == "true"
 
 - name: Install Metallb configmap
   command: >-
@@ -122,13 +123,14 @@
   changed_when: true
   when: install_k8dash == "true"
 
-- name: Copy Metallb configmap file
+- name: Copy k8dash service
   template:
     src: "service.yml.j2"
     dest: "~{{ ansible_user }}/kube-config/service.yml"
     owner: root
     group: root
     mode: 0755
+  when: install_k8dash == "true"
 
 - name: Install k8dashlb service
   command: >-
